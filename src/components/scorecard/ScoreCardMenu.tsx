@@ -16,7 +16,8 @@ export function ScoreCardMenu({ onClose }: ScoreCardMenuProps) {
   if (!state.round) return null;
 
   const activePlayers = state.round.players.filter(p => !p.hasFinished);
-  const finishedPlayers = state.round.players.filter(p => p.hasFinished);
+  // finishedPlayers not currently used; keep calculation commented for future use
+  // const finishedPlayers = state.round.players.filter(p => p.hasFinished);
   const allPlayersFinished = activePlayers.length === 0;
   const isMultiplayer = state.round.gameMode === 'multiplayer';
   const roomCode = state.round.roomCode || '';
@@ -30,13 +31,13 @@ export function ScoreCardMenu({ onClose }: ScoreCardMenuProps) {
   const shareMessage = `Join my golf game on Sticks and Stones!\n\nRoom Code: ${roomCode}\n\nOpen the app and enter this code to join.`;
 
   const handleShare = async () => {
-    if (navigator.share) {
+      if (navigator.share) {
       try {
         await navigator.share({
           title: 'Join my golf game',
           text: shareMessage,
         });
-      } catch (err) {
+      } catch {
         // User cancelled or share failed, fallback to copy
         copyRoomCode();
       }

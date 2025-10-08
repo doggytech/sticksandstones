@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       url: request.url,
       hasBody: Boolean(body),
     });
-  } catch (e) {
+  } catch {
     // ignore logging errors
   }
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         console.log('[instantdb proxy] attempt status', { url, status: resp.status });
 
         if (resp.ok) {
-          try { successJson = JSON.parse(text); } catch (e) { successJson = { raw: text }; }
+          try { successJson = JSON.parse(text); } catch { successJson = { raw: text }; }
           successStatus = resp.status;
           break;
         }

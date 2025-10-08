@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { usePlayerAuth } from '@/context/PlayerAuthContext';
-import { SetupWizard } from '@/components/scorecard/SetupWizard';
 import { ScoreCard } from '@/components/scorecard/ScoreCard';
-import { GameModeSelect } from '@/components/scorecard/GameModeSelect';
 import { MultiplayerSetup } from '@/components/scorecard/MultiplayerSetup';
 import { WaitingRoom } from '@/components/scorecard/WaitingRoom';
 import { CourseSetup } from '@/components/scorecard/CourseSetup';
-import type { Player, Hole } from '@/lib/types-multiplayer';
+import type { Hole } from '@/lib/types-multiplayer';
 import { createMultiplayerGame, joinGameByCode, useGameData, convertDBToRound, useFindGameByRoomCode, startGameRealtime } from '@/lib/multiplayer';
-import { STANDARD_9_HOLES, STANDARD_18_HOLES } from '@/lib/constants';
-import { generatePlayerId, db, id } from '@/lib/db';
+import { generatePlayerId } from '@/lib/db';
 
 type AppFlow =
   | 'welcome'
@@ -22,16 +19,15 @@ type AppFlow =
   | 'playing';
 
 export default function Home() {
-  const { state, startNewRound, resetGame, loadRound, syncRoundData } = useGame();
+  const { state, resetGame, loadRound, syncRoundData } = useGame();
   const { session, setPlayerName, clearSession } = usePlayerAuth();
 
   const [flow, setFlow] = useState<AppFlow>('welcome');
   const [tempGameId, setTempGameId] = useState<string>('');
   const [tempRoomCode, setTempRoomCode] = useState<string>('');
-  const [tempCourseName, setTempCourseName] = useState<string>('');
-  const [tempHoles, setTempHoles] = useState<Hole[]>([]);
+  
   const [joinRoomCode, setJoinRoomCode] = useState<string>(''); // For searching games
-  const [showCourseSelect, setShowCourseSelect] = useState(false);
+  
 
   // Subscribe to multiplayer game data if we have a gameId
   // Always call hooks unconditionally (Rules of Hooks)
@@ -42,10 +38,11 @@ export default function Home() {
   const gameSearchData = joinRoomCode ? gameSearchQuery.data : null;
 
   // Get current lobby state from database
-  const lobbyPlayers = gameData?.players || [];
-  const lobbyGame = gameData?.games?.[0];
-  const lobbyHoles = gameData?.holes || [];
-  const lobbyScores = gameData?.scores || [];
+  // Memoize derived lobby data to keep stable references for effect deps
+  const lobbyPlayers = useMemo(() => gameData?.players || [], [gameData?.players]);
+  const lobbyGame = useMemo(() => gameData?.games?.[0] ?? null, [gameData?.games]);
+  const lobbyHoles = useMemo(() => gameData?.holes || [], [gameData?.holes]);
+  const lobbyScores = useMemo(() => gameData?.scores || [], [gameData?.scores]);
 
   // Simple effect to detect when game starts (for non-host players)
   useEffect(() => {
@@ -55,7 +52,7 @@ export default function Home() {
       loadRound(round);
       setFlow('playing');
     }
-  }, [flow, session, lobbyGame?.isStarted, lobbyHoles.length, lobbyPlayers.length, lobbyGame, lobbyScores, loadRound]);
+  }, [flow, session?.isHost, lobbyGame, lobbyHoles, lobbyPlayers, lobbyScores, loadRound]);
 
   // Effect to sync real-time score updates while playing
   useEffect(() => {
@@ -194,9 +191,6 @@ export default function Home() {
     clearSession();
     setTempGameId('');
     setTempRoomCode('');
-    setTempCourseName('');
-    setTempHoles([]);
-    setShowCourseSelect(false);
     setFlow('welcome');
   };
 
@@ -205,9 +199,6 @@ export default function Home() {
     clearSession();
     setTempGameId('');
     setTempRoomCode('');
-    setTempCourseName('');
-    setTempHoles([]);
-    setShowCourseSelect(false);
     setFlow('welcome');
   };
 
@@ -237,7 +228,6 @@ export default function Home() {
         <div className="w-full max-w-2xl mx-auto">
           <WaitingRoom
             roomCode={tempRoomCode}
-            gameId={tempGameId}
             players={lobbyPlayers.map(p => ({
               id: p.id,
               name: p.name,

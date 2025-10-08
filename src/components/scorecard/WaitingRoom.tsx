@@ -6,7 +6,6 @@ import type { Player } from '@/lib/types-multiplayer';
 
 interface WaitingRoomProps {
   roomCode: string;
-  gameId: string;
   players: Player[];
   isHost: boolean;
   onStartGame: () => void;
@@ -15,7 +14,6 @@ interface WaitingRoomProps {
 
 export function WaitingRoom({
   roomCode,
-  gameId,
   players,
   isHost,
   onStartGame,
@@ -38,7 +36,7 @@ export function WaitingRoom({
           title: 'Join my golf game',
           text: shareMessage,
         });
-      } catch (err) {
+      } catch {
         // User cancelled or share failed, fallback to copy
         copyRoomCode();
       }
@@ -86,7 +84,7 @@ export function WaitingRoom({
           Players ({players.length}/6)
         </h3>
         <div className="space-y-2">
-          {players.map((player, index) => (
+          {players.map((player) => (
             <div
               key={player.id}
               className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"

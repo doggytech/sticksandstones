@@ -1,5 +1,5 @@
 import { db, generateRoomCode, id, uuidFromString } from './db';
-import type { Player, Hole, DBGame, DBPlayer, DBHole, DBScore } from './types-multiplayer';
+import type { Hole } from './types-multiplayer';
 import { PLAYER_COLORS } from './constants';
 
 /**
