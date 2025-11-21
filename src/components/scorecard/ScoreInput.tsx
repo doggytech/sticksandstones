@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { usePlayerAuth } from '@/context/PlayerAuthContext';
 import { Button } from '@/components/ui/Button';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 interface ScoreInputProps {
   holeNumber: number;
@@ -11,9 +12,11 @@ interface ScoreInputProps {
 }
 
 export function ScoreInput({ holeNumber, onClose }: ScoreInputProps) {
-  const { state, updateScore, nextHole, nextHoleForPlayer } = useGame();
+  const { state, updateScore, nextHole, nextHoleForPlayer, finishPlayer } = useGame();
   const { session } = usePlayerAuth();
   const [scores, setScores] = useState<{ [playerId: string]: number | null }>({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState('');
 
   if (!state.round) return null;
 
@@ -41,7 +44,37 @@ export function ScoreInput({ holeNumber, onClose }: ScoreInputProps) {
     for (const [playerId, strokes] of Object.entries(scores)) {
       await updateScore(playerId, holeNumber, strokes);
     }
+
+    // If this is the final hole, show an in-app confirmation modal before marking finished
+    if (state.round && holeNumber === state.round.holes.length) {
+      const message = state.round.gameMode === 'multiplayer' && session?.playerId
+        ? 'This will mark you as finished for the round. Continue?'
+        : 'This will finish the round and mark all players as finished. Continue?';
+
+      setConfirmMessage(message);
+      setShowConfirm(true);
+      return;
+    }
+
     onClose();
+  };
+
+  const handleConfirmFinish = () => {
+    if (!state.round) return;
+
+    if (state.round.gameMode === 'multiplayer' && session?.playerId) {
+      finishPlayer(session.playerId);
+    } else {
+      state.round.players.forEach(p => finishPlayer(p.id));
+    }
+
+    setShowConfirm(false);
+    onClose();
+  };
+
+  const handleCancelFinish = () => {
+    setShowConfirm(false);
+    // keep modal open so user can continue editing scores
   };
 
   const handleSaveAndNext = async () => {
@@ -207,11 +240,21 @@ export function ScoreInput({ holeNumber, onClose }: ScoreInputProps) {
             </>
           ) : (
             <Button onClick={handleSave} className="w-full" size="lg">
-              Save Scores
+              Save & Finish
             </Button>
           )}
         </div>
       </div>
+        {/* Confirmation Modal for final-hole finish */}
+        <ConfirmationModal
+          open={showConfirm}
+          title="Finish Round"
+          message={confirmMessage}
+          confirmLabel="Finish"
+          cancelLabel="Cancel"
+          onConfirm={handleConfirmFinish}
+          onCancel={handleCancelFinish}
+        />
     </div>
   );
 }
